@@ -2,7 +2,7 @@
 使用requests库和beautifulsoup库编写的爬虫程序，用于爬取PC6应用市场的安卓应用
 ## 代码解析
 核心代码：
-···Python
+```Python
         try:
             app = request(url)
             if app.status_code != 200:
