@@ -49,6 +49,81 @@ def request(url):
 ```
 ### 核心代码：
 ```Python
+ def get_app(self):
+        global start
+        global hold_time
+        global file_names
+        global APP_url
+        global APP_name
+        global APP_num
+        global Last_num
+        global thread_num
+        start = time.clock()
+        self.show_text('创建文件夹', 0)
+        self.mkdir(self.folder_path)
+        self.show_text('切换文件夹', 0)
+        os.chdir(self.folder_path)
+        file_names = self.get_files(self.folder_path)
+        threads = []
+        while (APP_num < self.APP_max):
+            self.per_page_num = 0
+            download_links = []
+            self.show_text('当前所在页面: Page' + str(self.page_num), 0)
+            self.page = str(self.page_num)
+            self.show_text('进行网页get请求', 0)     
+            # 构造请求的初始网址：根网址 + APP小类 + 页码
+            r = request(self.web_url + self.type_classify + self.page + ".html" )
+            r.encoding = 'utf-8'
+            self.show_text('进入APP详细页面', 0)
+            soup=BeautifulSoup(r.content, 'lxml')
+            all_a = soup.find('dl',id='listCont').find_all('p')
+            for a in all_a:
+                if APP_num >= self.APP_max:
+                    break
+                APP_url = "http://www.pc6.com" + a.find('a', class_="btn")["href"]
+                APP_name = a.find('i').string
+                if APP_name + '.apk' in file_names:
+                    print('APP:' + APP_name + '.apk 已存在')
+                    self.show_text('APP:' + APP_name + '.apk 已存在', 0)
+                # 有空闲的下载线程
+                elif thread_num < self.thread_max:
+                    print('APP:' + APP_name + '.apk 开始下载')
+                    self.show_text('NO.' + str(APP_num + 1) + ' APP:' + APP_name + '.apk 开始下载', 1)
+                    print('下载地址:', APP_url)
+                    # 创建新的线程来保存APP
+                    t = MyThread()
+                    t.start()
+                    APP_num += 1
+                    # 加入总的子线程列表
+                    threads.append(t)
+                    # 两次网络请求的间隔时间
+                    time.sleep(hold_time)
+                # 无空闲的下载线程
+                else:
+                    print('APP:' + APP_name + '.apk 正等待其余下载线程结束...')
+                    self.show_text('NO.' + str(APP_num + 1) + ' APP:' + APP_name + '.apk 正等待其余下载线程结束...', 1)
+                    # 每隔1s判断是否有空余子线程
+                    while (thread_num >= self.thread_max):
+                        time.sleep(1)  # 延时1s
+                    print('APP:' + APP_name + '.apk 开始下载')
+                    self.show_text('NO.' + str(APP_num + 1) + ' APP:' + APP_name + '.apk 开始下载', 1)
+                    print('下载地址:', APP_url)
+                    t = MyThread()
+                    t.start()
+                    APP_num += 1
+                    self.per_page_num += 1
+                    threads.append(t)
+                    time.sleep(hold_time)
+            if (per_page_num < 1):
+                break
+            self.page_num += 1
+            self.e6.set(self.page_num)
+        # 等待所有线程结束
+        for t in threads:
+            t.join()
+        end = time.clock()
+        self.show_text('总共用时: %.4f s' % (end - start), 1)
+        
  def save_app(self, url, name):
         global end
         global hold_time
